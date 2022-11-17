@@ -50,7 +50,12 @@ export function arrayify (thing) {
   return normalizeArray(thing)
 }
 
+// TD Override: Allow depth
 export function fromJSOrdered(js) {
+  return fromJSOrderedWith(js, 0)
+}
+
+export function fromJSOrderedWith(js, depth) {
   if (isImmutable(js)) {
     return js // Can't do much here
   }
@@ -60,15 +65,22 @@ export function fromJSOrdered(js) {
   if (!isObject(js)) {
     return js
   }
+
+  if (depth > 10) { // Default depth is 3
+    return Array.isArray(js) ? new Im.List() : new Im.Map()
+  }
+
+  depth++
+
   if (Array.isArray(js)) {
-    return Im.Seq(js).map(fromJSOrdered).toList()
+    return Im.Seq(js).map((i) => fromJSOrderedWith(i, depth)).toList()
   }
   if (isFunction(js.entries)) {
     // handle multipart/form-data
     const objWithHashedKeys = createObjWithHashedKeys(js)
-    return Im.OrderedMap(objWithHashedKeys).map(fromJSOrdered)
+    return Im.OrderedMap(objWithHashedKeys).map((i) => fromJSOrderedWith(i, depth))
   }
-  return Im.OrderedMap(js).map(fromJSOrdered)
+  return Im.OrderedMap(js).map((i) => fromJSOrderedWith(i, depth))
 }
 
 /**
